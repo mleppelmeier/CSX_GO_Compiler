@@ -1,0 +1,458 @@
+import java.util.Locale;
+import java_cup.runtime.*;
+
+/**
+ * Mallory Leppelmeier
+ * September 22, 2020
+ * The jflex file specifies the regular expression patterns for 
+ * all the CSX_go tokens, as well as any special processing required 
+ * by tokens.
+ 
+ */
+
+class CSXToken {
+	int linenum;
+	int colnum;
+	CSXToken(int line,int col) {
+		linenum=line; colnum=col;
+	}
+}
+
+class CSXIntLitToken extends CSXToken {
+	int intValue;
+	CSXIntLitToken(int val,int line,int col) {
+	   super(line,col); intValue=val; 
+	};
+}
+
+class CSXIdentifierToken extends CSXToken {
+	String identifierText;
+	CSXIdentifierToken(String text,int line,int col) {
+		super(line,col); identifierText=text;
+	}
+}
+
+class CSXCharLitToken extends CSXToken {
+	char charValue; //char with no single quote or escape chars
+	String charAsInput; //char with single quote and excaped chars
+	CSXCharLitToken(char val,String input,int line,int col) {
+		super(line,col); charValue=val; charAsInput = input;
+	}
+}
+
+class CSXStringLitToken extends CSXToken {
+	String stringText; // String with no quotes or escaped chars
+	String stringAsInput; //String with quotes and escaped chars
+	CSXStringLitToken(String text,String input,int line,int col) {
+		super(line,col); stringText=text; stringAsInput = input;
+	}
+}
+
+class CSXErrorToken extends CSXToken {
+        String errorText;
+        CSXErrorToken(String error,int line,int col) {
+                super(line,col);
+                errorText=error;
+        }
+}
+
+// This class is used to track line and column numbers
+class Pos {
+	static int  linenum = 1; /* maintain this as line number current
+                                 token was scanned on */
+	static int  colnum = 1; /* maintain this as column number current
+                                 token began at */
+	static int  line = 1; /* maintain this as line number after
+					scanning current token  */
+	static int  col = 1; /* maintain this as column number after
+					scanning current token  */
+	static void setpos() { // set starting position for current token
+		linenum = line;
+		colnum = col;
+	}
+}
+
+/*
+//Symbol attaches sym value with the CSXToken
+class Symbol { 
+	public int sym;
+	public CSXToken value;
+	public Symbol(int tokenType, CSXToken theToken) {
+		sym = tokenType;
+		value = theToken;
+	}
+}
+*/
+
+//Regular expression patterns used for the CSX_go tokens
+%%
+
+DIGIT=[0-9]
+
+LOWER=[a-z]
+
+UPPER=[A-Z]
+
+PRINTABLE=[!-~]|" "
+
+IDENTIFIER=({LOWER}|{UPPER})({LOWER}|{UPPER}|{DIGIT})*
+
+STRINGLIT=\"(!(\"|\\|!{PRINTABLE})|\\\"|\\n|\\t|\\\\)*\"
+
+CHARLIT='(!('|\\|!{PRINTABLE})|\\'|\\n|\\t|\\\\)'
+
+LINECOMMENT="//" [^\n]* \n?
+
+BLOCKCOMMENT="@@"(@?[^@])* "@@"
+
+%type Symbol
+
+%eofval{
+  return new Symbol(sym.EOF, new CSXToken(0,0));
+%eofval}
+
+
+%%
+
+//Reserved words can be upper or lower case
+[bB][oO][oO][lL]      {
+        Pos.setpos(); Pos.col +=4;
+        return new Symbol(sym.BOOL, new CSXToken(Pos.linenum,Pos.colnum));
+}
+
+[bB][rR][eE][aA][kK]    {
+        Pos.setpos(); Pos.col +=5;
+        return new Symbol(sym.BREAK, new CSXToken(Pos.linenum,Pos.colnum));
+}
+
+[cC][hH][aA][rR]        {
+        Pos.setpos(); Pos.col +=4;
+        return new Symbol(sym.CHAR, new CSXToken(Pos.linenum,Pos.colnum));
+}
+
+[cC][oO][nN][sS][tT]    {
+        Pos.setpos(); Pos.col +=5;
+        return new Symbol(sym.CONST, new CSXToken(Pos.linenum,Pos.colnum));
+}
+
+[cC][oO][nN][tT][iI][nN][uU][eE]        {
+        Pos.setpos(); Pos.col +=8;
+        return new Symbol(sym.CONTINUE, new CSXToken(Pos.linenum,Pos.colnum));
+}
+[eE][lL][sS][eE]        {
+        Pos.setpos(); Pos.col +=4;
+        return new Symbol(sym.ELSE, new CSXToken(Pos.linenum,Pos.colnum));
+}
+
+[fF][oO][rR]    {
+        Pos.setpos(); Pos.col +=3;
+        return new Symbol(sym.FOR, new CSXToken(Pos.linenum,Pos.colnum));
+}
+
+[fF][uU][nN][cC]        {
+        Pos.setpos(); Pos.col +=4;
+        return new Symbol(sym.FUNC, new CSXToken(Pos.linenum,Pos.colnum));
+}
+
+[iI][fF]        {
+        Pos.setpos(); Pos.col +=2;
+        return new Symbol(sym.IF, new CSXToken(Pos.linenum,Pos.colnum));
+}
+
+[iI][nN][tT]    {
+        Pos.setpos(); Pos.col +=3;
+        return new Symbol(sym.INT, new CSXToken(Pos.linenum,Pos.colnum));
+}
+
+[pP][aA][cC][kK][aA][gG][eE]    {
+        Pos.setpos(); Pos.col +=7;
+        return new Symbol(sym.PACKAGE, new CSXToken(Pos.linenum,Pos.colnum));
+}
+
+[pP][rR][iI][nN][tT]    {
+        Pos.setpos(); Pos.col +=5;
+        return new Symbol(sym.PRINT, new CSXToken(Pos.linenum,Pos.colnum));
+}
+
+[rR][eE][aA][dD]        {
+        Pos.setpos(); Pos.col +=4;
+        return new Symbol(sym.READ, new CSXToken(Pos.linenum,Pos.colnum));
+}
+
+[rR][eE][tT][uU][rR][nN]        {
+        Pos.setpos(); Pos.col +=6;
+        return new Symbol(sym.RETURN, new CSXToken(Pos.linenum,Pos.colnum));
+}
+
+[vV][aA][rR]    {
+        Pos.setpos(); Pos.col +=3;
+        return new Symbol(sym.VAR, new CSXToken(Pos.linenum,Pos.colnum));
+}
+
+//Boolean Literals can be upper or lower case
+[tT][rR][uU][eE]	{
+        Pos.setpos(); Pos.col += yytext().length();
+        return new Symbol(sym.TRUE, new CSXToken(Pos.linenum, Pos.colnum));
+}
+
+[fF][aA][lL][sS][eE]	{
+	Pos.setpos(); Pos.col += yytext().length();
+        return new Symbol(sym.FALSE,new CSXToken(Pos.linenum,Pos.colnum));
+}
+
+//Scanning Integer literals that are negative
+"~"{DIGIT}+        {
+        Pos.setpos(); Pos.col += yytext().length();
+	String warnMsg = 
+		"WARNING: Integer out of bounds. ~2147483648 will be used."
+		+ " Line: ";
+        try{
+		//Convert input to a long. Exchange ~ for - for Java 
+		long convert = Long.parseLong("-" + yytext().substring(1));
+
+		//Check if the number is in Integer bounds
+		if(convert < Integer.MIN_VALUE){
+			//Warn the user the number used is out of bounds
+			System.out.println(warnMsg + Pos.line);
+			//use int min instead
+                	return new Symbol(sym.INTLIT, new CSXIntLitToken(
+				Integer.MIN_VALUE, Pos.linenum,Pos.colnum));
+		}
+                return new Symbol(sym.INTLIT, new CSXIntLitToken((int)convert, 
+			Pos.linenum,Pos.colnum));
+        }catch(NumberFormatException e){
+		//If number format exception is throw print warning
+                System.out.println(warnMsg + Pos.line);
+                return new Symbol(sym.INTLIT, new CSXIntLitToken(
+			Integer.MIN_VALUE, Pos.linenum,Pos.colnum));
+        }
+}
+
+//Scanning Integer Literals that are positive
+{DIGIT}+        {
+        Pos.setpos(); Pos.col += yytext().length();
+	String warnMsg = 
+		"WARNING: Integer out of bounds. 2147483647 will be used." +
+		" Line: ";
+	try{
+		//convert to a long to avoid exceptions just outside int range
+		long convert = Long.parseLong(yytext());
+		
+		//Check if the number is in Integer bounds
+		if(convert > Integer.MAX_VALUE){
+			//Warn the user the number used is out of bounds
+			System.out.println(warnMsg + Pos.line);
+
+			//Use max value instead
+                	return new Symbol(sym.INTLIT, new CSXIntLitToken(
+				Integer.MAX_VALUE,Pos.linenum,Pos.colnum));
+		}
+        	return new Symbol(sym.INTLIT, new CSXIntLitToken((int)convert,
+                        Pos.linenum,Pos.colnum));
+	}catch(NumberFormatException e){
+		System.out.println(warnMsg + Pos.line);
+		return new Symbol(sym.INTLIT, new CSXIntLitToken(
+			Integer.MAX_VALUE,Pos.linenum,Pos.colnum));
+	}
+}
+
+//Scanning string Literals
+{STRINGLIT}       {
+        Pos.setpos(); Pos.col += yytext().length();
+        String editedText = yytext().substring(1,yytext().length()-1);
+        String[] escChar = {"\\\\", "\\t", "\\n", "\\\""};
+        String[] escValue = {"\\", "\t", "\n", "\""};
+        int indexOf = 0;
+
+	//create a substring of the input with no quotes and no escaped chars
+        for(int i = 0; i <4; i++){
+                indexOf = editedText.indexOf(escChar[i], 0);
+                while (indexOf != -1){
+                        editedText = editedText.replace(escChar[i], 
+				escValue[i]);
+                        indexOf++;
+                        indexOf = editedText.indexOf(escChar[i], indexOf);
+                }
+        }
+        return new Symbol(sym.STRLIT,new CSXStringLitToken(editedText,yytext(),
+		Pos.linenum,Pos.colnum));
+}
+
+//Scanning char literals
+{CHARLIT}        {
+        Pos.setpos(); Pos.col += yytext().length();
+        String[] escChar = {"\\\\", "\\t", "\\n", "\\'"};
+        char[] escValue = {'\\', '\t', '\n', '\''};
+        int indexOf = 0;
+
+	//create a char from the input with no quotes and no escaped chars
+        for(int i = 0; i <4; i++){
+                if(yytext().contains(escChar[i])){
+                        return new Symbol(sym.CHARLIT,new CSXCharLitToken(
+				escValue[i],yytext(),Pos.linenum,Pos.colnum));
+                }
+        }
+        
+        return new Symbol(sym.CHARLIT, new CSXCharLitToken(yytext().charAt(1),
+		yytext(),Pos.linenum,Pos.colnum));
+}
+
+//Scan identifiers
+{IDENTIFIER}    {
+        Pos.setpos(); Pos.col += yytext().length();
+        return new Symbol(sym.IDENTIFIER, new CSXIdentifierToken(yytext(),
+		Pos.linenum,Pos.colnum));
+}
+
+//Scan symbols
+"==" 	{
+	Pos.setpos(); Pos.col += 2;
+        return new Symbol(sym.BOOL_EQUAL, new CSXToken(Pos.linenum,Pos.colnum));
+}
+
+"!="	{
+        Pos.setpos(); Pos.col += 2;
+        return new Symbol(sym.NOT_EQUAL, new CSXToken(Pos.linenum,Pos.colnum));
+}
+
+">="	{
+        Pos.setpos(); Pos.col += 2;
+        return new Symbol(sym.GREAT_EQUAL, new CSXToken(Pos.linenum,Pos.colnum));
+}
+
+"<="    {
+        Pos.setpos(); Pos.col += 2;
+        return new Symbol(sym.LESS_EQUAL, new CSXToken(Pos.linenum,Pos.colnum));
+}
+
+">"    {
+        Pos.setpos(); Pos.col += 1;
+        return new Symbol(sym.GREATER, new CSXToken(Pos.linenum,Pos.colnum));
+}
+
+"<"    {
+        Pos.setpos(); Pos.col += 1;
+        return new Symbol(sym.LESS, new CSXToken(Pos.linenum,Pos.colnum));
+}
+
+"||"    {
+        Pos.setpos(); Pos.col += 2;
+        return new Symbol(sym.OR, new CSXToken(Pos.linenum,Pos.colnum));
+}
+
+"&&"    {
+        Pos.setpos(); Pos.col += 2;
+        return new Symbol(sym.AND, new CSXToken(Pos.linenum,Pos.colnum));
+}
+
+"+"	{
+	Pos.setpos(); Pos.col += 1;
+	return new Symbol(sym.PLUS, new CSXToken(Pos.linenum,Pos.colnum));
+}
+
+"-"	{
+	Pos.setpos();Pos.col += 1;
+	return new Symbol(sym.MINUS,new CSXToken(Pos.linenum,Pos.colnum));
+}
+
+"*"     {
+        Pos.setpos();Pos.col += 1;
+        return new Symbol(sym.MULTIPLY,new CSXToken(Pos.linenum,Pos.colnum));
+}
+
+"/"     {
+        Pos.setpos();Pos.col += 1;
+        return new Symbol(sym.DIVIDE,new CSXToken(Pos.linenum,Pos.colnum));
+}
+
+"="     {
+        Pos.setpos();Pos.col += 1;
+        return new Symbol(sym.EQUALS,new CSXToken(Pos.linenum,Pos.colnum));
+}
+
+";"     {
+        Pos.setpos();Pos.col += 1;
+        return new Symbol(sym.SEMI,new CSXToken(Pos.linenum,Pos.colnum));
+}
+
+":"     {
+        Pos.setpos();Pos.col += 1;
+        return new Symbol(sym.COLON,new CSXToken(Pos.linenum,Pos.colnum));
+}
+
+","     {
+        Pos.setpos();Pos.col += 1;
+        return new Symbol(sym.COMMA,new CSXToken(Pos.linenum,Pos.colnum));
+}
+
+"("     {
+        Pos.setpos();Pos.col += 1;
+        return new Symbol(sym.LPAREN,new CSXToken(Pos.linenum,Pos.colnum));
+}
+
+")"     {
+        Pos.setpos();Pos.col += 1;
+        return new Symbol(sym.RPAREN,new CSXToken(Pos.linenum,Pos.colnum));
+}
+
+"["     {
+        Pos.setpos();Pos.col += 1;
+        return new Symbol(sym.LBRACE,new CSXToken(Pos.linenum,Pos.colnum));
+}
+
+"]"     {
+        Pos.setpos();Pos.col += 1;
+        return new Symbol(sym.RBRACE,new CSXToken(Pos.linenum,Pos.colnum));
+}
+
+"{"     {
+        Pos.setpos();Pos.col += 1;
+        return new Symbol(sym.LC_BRACE,new CSXToken(Pos.linenum,Pos.colnum));
+}
+
+"}"     {
+        Pos.setpos();Pos.col += 1;
+        return new Symbol(sym.RC_BRACE,new CSXToken(Pos.linenum,Pos.colnum));
+}
+
+"!"     {
+        Pos.setpos();Pos.col += 1;
+        return new Symbol(sym.NOT,new CSXToken(Pos.linenum,Pos.colnum));
+}
+
+//Scanning Comments
+{LINECOMMENT}	{
+	Pos.col = 1;Pos.line += 1;
+}
+
+{BLOCKCOMMENT}	{
+	String text = yytext();
+	int colInBlock = text.length()-(text.lastIndexOf("\n")+1);
+	int lastIndex = text.indexOf("\n",0);
+	int linesInBlock = 0;	
+	
+	while(lastIndex != -1){
+		Pos.col = 0;
+        	linesInBlock++;
+        	lastIndex++;
+		lastIndex = text.indexOf("\n",lastIndex);
+	}
+	Pos.col += colInBlock;
+	Pos.line += linesInBlock;
+}
+
+//Scanning white spaces
+\n	{
+	Pos.line += 1;Pos.col = 1;
+}
+
+" "|\t	{
+	Pos.col += 1;
+}
+
+//Scanning anything left as an invalid token
+.       {
+        Pos.setpos();Pos.col += yytext().length();
+        return new Symbol(sym.ERROR, new CSXErrorToken(yytext(),
+		Pos.linenum,Pos.colnum));
+}
